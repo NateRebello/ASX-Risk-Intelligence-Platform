@@ -1,0 +1,17 @@
+# Lambda container image for the ASX Risk Intelligence pipeline.
+# The scientific stack (numpy/pandas/hmmlearn/arch) is easiest to ship
+# reliably as a container image rather than a zip + layer.
+FROM public.ecr.aws/lambda/python:3.12
+
+COPY requirements.txt ${LAMBDA_TASK_ROOT}/requirements.txt
+RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
+
+COPY config ${LAMBDA_TASK_ROOT}/config
+COPY src ${LAMBDA_TASK_ROOT}/src
+COPY sql ${LAMBDA_TASK_ROOT}/sql
+
+# The actual handler entry point is selected per-function via the SAM
+# template's `ImageConfig.Command`, e.g.:
+#   src.ingestion.yahoo_loader.lambda_handler
+#   src.analytics.regimes.lambda_handler
+CMD ["src.ingestion.yahoo_loader.lambda_handler"]

@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8' ?>
+
+<!--
+  Starter Tableau workbook for the ASX Risk Intelligence Platform.
+  Wires up PostgreSQL custom-SQL data sources for each dashboard page
+  (see dashboard/tableau/README.md). Open in Tableau Desktop, supply DB
+  credentials when prompted, then build worksheets/dashboards on top of
+  these data sources.
+-->
+<workbook source-build='2023.3' source-platform='win' version='18.1' xmlns:user='http://www.tableausoftware.com/xml/user'>
+  <preferences>
+    <preference name='ui.encoding.shelf.height' value='24' />
+    <preference name='ui.shelf.height' value='26' />
+  </preferences>
+  <datasources>
+
+    <datasource caption='Market Overview' name='market_overview' version='18.1'>
+      <connection class='postgres' dbname='asx_risk' odbc-connect-string-extras='' port='5432' schema='public' server='localhost' sslmode=''>
+        <relation name='market_overview' type='text'>
+          SELECT date, AVG(rolling_vol) AS avg_rolling_vol, MODE() WITHIN GROUP (ORDER BY regime) AS market_regime
+          FROM volatility WHERE rolling_vol IS NOT NULL GROUP BY date ORDER BY date
+        </relation>
+      </connection>
+    </datasource>
+
+    <datasource caption='Correlation Heatmap' name='correlation_heatmap' version='18.1'>
+      <connection class='postgres' dbname='asx_risk' odbc-connect-string-extras='' port='5432' schema='public' server='localhost' sslmode=''>
+        <relation name='correlation_heatmap' type='text'>
+          SELECT a.ticker AS ticker_a, b.ticker AS ticker_b, CORR(a.daily_return, b.daily_return) AS correlation
+          FROM returns a JOIN returns b ON a.date = b.date AND a.ticker &lt;&gt; b.ticker
+          GROUP BY a.ticker, b.ticker
+        </relation>
+      </connection>
+    </datasource>
+
+    <datasource caption='Sector Exposure' name='sector_exposure' version='18.1'>
+      <connection class='postgres' dbname='asx_risk' odbc-connect-string-extras='' port='5432' schema='public' server='localhost' sslmode=''>
+        <relation name='sector_exposure' type='text'>
+          SELECT s.sector, SUM(ph.weight) AS exposure
+          FROM portfolio_holdings ph JOIN stocks s USING (ticker)
+          GROUP BY s.sector ORDER BY exposure DESC
+        </relation>
+      </connection>
+    </datasource>
+
+    <datasource caption='Macro vs Volatility' name='macro_vs_volatility' version='18.1'>
+      <connection class='postgres' dbname='asx_risk' odbc-connect-string-extras='' port='5432' schema='public' server='localhost' sslmode=''>
+        <relation name='macro_vs_volatility' type='text'>
+          SELECT v.date, AVG(v.rolling_vol) AS avg_rolling_vol, m.cash_rate, m.cpi, m.aud_usd, m.iron_ore_price
+          FROM volatility v LEFT JOIN macro m ON v.date = m.date
+          GROUP BY v.date, m.cash_rate, m.cpi, m.aud_usd, m.iron_ore_price
+          ORDER BY v.date
+        </relation>
+      </connection>
+    </datasource>
+
+  </datasources>
+  <worksheets />
+  <dashboards />
+</workbook>
