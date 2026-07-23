@@ -1,0 +1,82 @@
+name: Deploy AWS
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to deploy
+        required: false
+        default: manual
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Validate infrastructure
+        run: sam validate --template template.yaml
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and publish immutable Lambda image
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          aws ecr describe-repositories --repository-names "$ECR_REPOSITORY" ||
+            aws ecr create-repository --repository-name "$ECR_REPOSITORY"
+          IMAGE_URI="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker build --file Dockerfile.lambda --tag "$IMAGE_URI" .
+          docker push "$IMAGE_URI"
+          echo "uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy application stack
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+          DB_HOST: ${{ vars.AWS_DB_HOST }}
+          DB_PORT: ${{ vars.AWS_DB_PORT || '5432' }}
+          DB_NAME: ${{ vars.AWS_DB_NAME }}
+          DB_USER: ${{ vars.AWS_DB_USER }}
+          DB_SECRET_ARN: ${{ secrets.AWS_DB_SECRET_ARN }}
+          VPC_SUBNET_IDS: ${{ vars.AWS_VPC_SUBNET_IDS }}
+          VPC_SECURITY_GROUP_IDS: ${{ vars.AWS_VPC_SECURITY_GROUP_IDS }}
+        run: |
+          sam deploy \
+            --stack-name asx-risk-platform \
+            --region "$AWS_REGION" \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              ImageUri="$IMAGE_URI" \
+              DbHost="$DB_HOST" \
+              DbPort="$DB_PORT" \
+              DbName="$DB_NAME" \
+              DbUser="$DB_USER" \
+              DbSecretArn="$DB_SECRET_ARN" \
+              VpcSubnetIds="$VPC_SUBNET_IDS" \
+              VpcSecurityGroupIds="$VPC_SECURITY_GROUP_IDS"

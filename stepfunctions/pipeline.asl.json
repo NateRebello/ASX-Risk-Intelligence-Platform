@@ -1,0 +1,150 @@
+{
+  "Comment": "ASX Risk Intelligence daily pipeline. Set runMigrations=true only for controlled bootstrap runs.",
+  "StartAt": "ShouldRunMigrations",
+  "States": {
+    "ShouldRunMigrations": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.runMigrations",
+          "BooleanEquals": true,
+          "Next": "ApplyMigrations"
+        }
+      ],
+      "Default": "IngestMarketData"
+    },
+    "ApplyMigrations": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${MigrateFunctionArn}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.migration",
+      "Next": "IngestMarketData",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "PublishFailure"
+        }
+      ]
+    },
+    "IngestMarketData": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "IngestPrices",
+          "States": {
+            "IngestPrices": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${IngestPricesFunctionArn}",
+                "Payload": { "period": "5d" }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException", "States.TaskFailed"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "IngestMacro",
+          "States": {
+            "IngestMacro": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${IngestMacroFunctionArn}",
+                "Payload": { "period": "1mo" }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException", "States.TaskFailed"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.ingestion",
+      "Next": "ComputeReturns",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "PublishFailure"
+        }
+      ]
+    },
+    "ComputeReturns": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ComputeReturnsFunctionArn}",
+        "Payload": {}
+      },
+      "ResultPath": "$.returns",
+      "Next": "ComputeVolatility",
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "PublishFailure"}]
+    },
+    "ComputeVolatility": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ComputeVolatilityFunctionArn}",
+        "Payload": {}
+      },
+      "ResultPath": "$.volatility",
+      "Next": "ComputeRegimes",
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "PublishFailure"}]
+    },
+    "ComputeRegimes": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ComputeRegimesFunctionArn}",
+        "Payload": {}
+      },
+      "ResultPath": "$.regimes",
+      "Next": "GenerateBriefing",
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "PublishFailure"}]
+    },
+    "GenerateBriefing": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${GenerateBriefingFunctionArn}",
+        "Payload.$": "$"
+      },
+      "End": true,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "PublishFailure"}]
+    },
+    "PublishFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${FailureTopicArn}",
+        "Subject": "ASX risk pipeline failed",
+        "Message.$": "States.JsonToString($)"
+      },
+      "Next": "PipelineFailed"
+    },
+    "PipelineFailed": {
+      "Type": "Fail",
+      "Error": "ASXRiskPipelineFailed",
+      "Cause": "A pipeline task failed. Error details were published to the failure topic."
+    }
+  }
+}

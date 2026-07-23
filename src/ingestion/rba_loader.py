@@ -33,6 +33,7 @@ from sqlalchemy.engine import Engine
 
 from config import settings
 from src.db.engine import get_engine
+from src.storage.s3_archive import archive_dataframe
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -206,6 +207,7 @@ def run(period: str = "5y") -> int:
     for col in ("cash_rate", "cpi", "unemployment"):
         merged[col] = merged[col].ffill()
 
+    archive_dataframe(merged, source="macro", identifier="daily-macro")
     n = upsert_macro(engine, merged[["date", "cash_rate", "cpi", "unemployment", "aud_usd", "iron_ore_price"]])
     logger.info("Upserted %d macro rows", n)
     return n

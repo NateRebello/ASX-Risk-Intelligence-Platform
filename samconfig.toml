@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.global.parameters]
+region = "ap-southeast-2"
+
+[default.validate.parameters]
+template_file = "template.yaml"
+
+[default.deploy.parameters]
+stack_name = "asx-risk-platform"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+fail_on_empty_changeset = false
+resolve_s3 = true

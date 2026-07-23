@@ -1,152 +1,208 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  ASX Risk Intelligence Platform — daily ETL/analytics pipeline.
-  Ingests ASX prices + macro data, computes returns/volatility/regimes,
-  and generates an executive risk briefing, all on an EventBridge schedule
-  timed to the ASX market close (16:10 AEST / 06:10 UTC).
+Description: ASX Risk Intelligence Platform daily market-risk pipeline.
 
 Parameters:
+  ImageUri:
+    Type: String
+    Description: Immutable ECR image URI published by CI.
   DbHost:
     Type: String
-    Description: RDS/Aurora Postgres endpoint
+    Description: Existing RDS/Aurora PostgreSQL endpoint.
+  DbPort:
+    Type: Number
+    Default: 5432
   DbName:
     Type: String
     Default: asx_risk
   DbUser:
     Type: String
-    Default: postgres
-  DbPasswordSecretArn:
+    Description: Database application username.
+  DbSecretArn:
     Type: String
-    Description: Secrets Manager ARN holding the DB password
+    Description: Secrets Manager ARN containing a plaintext password or JSON password field.
   VpcSubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
   VpcSecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
+  ScheduleExpression:
+    Type: String
+    Default: cron(10 6 ? * MON-FRI *)
+    Description: UTC schedule; account for AEST/AEDT operational policy.
 
 Globals:
   Function:
     Timeout: 300
     MemorySize: 1024
     PackageType: Image
+    Tracing: Active
     VpcConfig:
       SubnetIds: !Ref VpcSubnetIds
       SecurityGroupIds: !Ref VpcSecurityGroupIds
     Environment:
       Variables:
         DB_HOST: !Ref DbHost
+        DB_PORT: !Ref DbPort
         DB_NAME: !Ref DbName
         DB_USER: !Ref DbUser
-        DB_PASSWORD: !Sub '{{resolve:secretsmanager:${DbPasswordSecretArn}}}'
+        DB_SECRET_ARN: !Ref DbSecretArn
+        S3_BUCKET: !Ref RawDataBucket
+        AWS_REGION: !Ref AWS::Region
 
 Resources:
+  RawDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'asx-risk-data-lake-${AWS::AccountId}-${AWS::Region}'
+      VersioningConfiguration: {Status: Enabled}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireRawAfterOneYear
+            Status: Enabled
+            ExpirationInDays: 365
+
+  PipelineFailureQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+
+  PipelineFailureTopic:
+    Type: AWS::SNS::Topic
+
+  PipelineFailureSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: !Ref PipelineFailureTopic
+      Endpoint: !GetAtt PipelineFailureQueue.Arn
+
+  PipelineFailureQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref PipelineFailureQueue]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: sns.amazonaws.com}
+            Action: sqs:SendMessage
+            Resource: !GetAtt PipelineFailureQueue.Arn
+            Condition: {ArnEquals: {aws:SourceArn: !Ref PipelineFailureTopic}}
+
+  PipelineFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: ReadDatabaseSecretAndArchiveRawData
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref DbSecretArn
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${RawDataBucket.Arn}/raw/*'
 
   IngestPricesFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-ingest-prices
-      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
-      ImageConfig:
-        Command: ["src.ingestion.yahoo_loader.lambda_handler"]
-      Events:
-        DailySchedule:
-          Type: ScheduleV2
-          Properties:
-            # 06:10 UTC == 16:10 AEST (weekday post-close). Adjust for DST.
-            ScheduleExpression: "cron(10 6 ? * MON-FRI *)"
-            Input: '{"period": "5d"}'
-    Metadata:
-      Dockerfile: Dockerfile.lambda
-      DockerContext: .
-
+      Role: !GetAtt PipelineFunctionRole.Arn
+      ImageUri: !Ref ImageUri
+      ImageConfig: {Command: ["src.ingestion.yahoo_loader.lambda_handler"]}
   IngestMacroFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-ingest-macro
-      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
-      ImageConfig:
-        Command: ["src.ingestion.rba_loader.lambda_handler"]
-      Events:
-        WeeklySchedule:
-          Type: ScheduleV2
-          Properties:
-            ScheduleExpression: "cron(0 7 ? * MON *)"
-            Input: '{"period": "1mo"}'
-    Metadata:
-      Dockerfile: Dockerfile.lambda
-      DockerContext: .
-
+      Role: !GetAtt PipelineFunctionRole.Arn
+      ImageUri: !Ref ImageUri
+      ImageConfig: {Command: ["src.ingestion.rba_loader.lambda_handler"]}
   ComputeReturnsFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-compute-returns
-      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
-      ImageConfig:
-        Command: ["src.analytics.returns.lambda_handler"]
-      Events:
-        AfterIngest:
-          Type: ScheduleV2
-          Properties:
-            ScheduleExpression: "cron(20 6 ? * MON-FRI *)"
-
+      Role: !GetAtt PipelineFunctionRole.Arn
+      ImageUri: !Ref ImageUri
+      ImageConfig: {Command: ["src.analytics.returns.lambda_handler"]}
   ComputeVolatilityFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-compute-volatility
-      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
-      ImageConfig:
-        Command: ["src.analytics.volatility.lambda_handler"]
-      Events:
-        AfterReturns:
-          Type: ScheduleV2
-          Properties:
-            ScheduleExpression: "cron(25 6 ? * MON-FRI *)"
-
+      Role: !GetAtt PipelineFunctionRole.Arn
+      ImageUri: !Ref ImageUri
+      ImageConfig: {Command: ["src.analytics.volatility.lambda_handler"]}
   ComputeRegimesFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-compute-regimes
-      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
-      ImageConfig:
-        Command: ["src.analytics.regimes.lambda_handler"]
-      Events:
-        AfterVolatility:
-          Type: ScheduleV2
-          Properties:
-            ScheduleExpression: "cron(30 6 ? * MON-FRI *)"
-
+      Role: !GetAtt PipelineFunctionRole.Arn
+      ImageUri: !Ref ImageUri
+      ImageConfig: {Command: ["src.analytics.regimes.lambda_handler"]}
   GenerateBriefingFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-generate-briefing
-      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
-      ImageConfig:
-        Command: ["src.reports.executive_summary.lambda_handler"]
+      Role: !GetAtt PipelineFunctionRole.Arn
+      ImageUri: !Ref ImageUri
+      ImageConfig: {Command: ["src.reports.executive_summary.lambda_handler"]}
+  MigrateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: asx-risk-apply-migrations
+      Role: !GetAtt PipelineFunctionRole.Arn
+      ImageUri: !Ref ImageUri
+      ImageConfig: {Command: ["src.db.migrate_lambda.lambda_handler"]}
+
+  PipelineStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: asx-risk-daily-pipeline
+      DefinitionUri: stepfunctions/pipeline.asl.json
+      DefinitionSubstitutions:
+        MigrateFunctionArn: !GetAtt MigrateFunction.Arn
+        IngestPricesFunctionArn: !GetAtt IngestPricesFunction.Arn
+        IngestMacroFunctionArn: !GetAtt IngestMacroFunction.Arn
+        ComputeReturnsFunctionArn: !GetAtt ComputeReturnsFunction.Arn
+        ComputeVolatilityFunctionArn: !GetAtt ComputeVolatilityFunction.Arn
+        ComputeRegimesFunctionArn: !GetAtt ComputeRegimesFunction.Arn
+        GenerateBriefingFunctionArn: !GetAtt GenerateBriefingFunction.Arn
+        FailureTopicArn: !Ref PipelineFailureTopic
+      Policies:
+        - LambdaInvokePolicy: {FunctionName: !Ref MigrateFunction}
+        - LambdaInvokePolicy: {FunctionName: !Ref IngestPricesFunction}
+        - LambdaInvokePolicy: {FunctionName: !Ref IngestMacroFunction}
+        - LambdaInvokePolicy: {FunctionName: !Ref ComputeReturnsFunction}
+        - LambdaInvokePolicy: {FunctionName: !Ref ComputeVolatilityFunction}
+        - LambdaInvokePolicy: {FunctionName: !Ref ComputeRegimesFunction}
+        - LambdaInvokePolicy: {FunctionName: !Ref GenerateBriefingFunction}
+        - SNSPublishMessagePolicy: {TopicName: !GetAtt PipelineFailureTopic.TopicName}
       Events:
-        AfterRegimes:
+        DailyMarketClose:
           Type: ScheduleV2
           Properties:
-            ScheduleExpression: "cron(35 6 ? * MON-FRI *)"
-
-  RawDataBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub 'asx-risk-data-lake-${AWS::AccountId}'
-      VersioningConfiguration:
-        Status: Enabled
-      LifecycleConfiguration:
-        Rules:
-          - Id: ExpireRawAfter1Year
-            Status: Enabled
-            ExpirationInDays: 365
+            ScheduleExpression: !Ref ScheduleExpression
+            Input: '{"runMigrations": false}'
+            DeadLetterConfig: {Type: SQS, Arn: !GetAtt PipelineFailureQueue.Arn}
 
 Outputs:
-  PipelineFunctions:
-    Description: Lambda functions comprising the daily pipeline (run in this order)
-    Value: !Join
-      - ' -> '
-      - - !Ref IngestPricesFunction
-        - !Ref ComputeReturnsFunction
-        - !Ref ComputeVolatilityFunction
-        - !Ref ComputeRegimesFunction
-        - !Ref GenerateBriefingFunction
+  StateMachineArn:
+    Value: !Ref PipelineStateMachine
+  FailureQueueUrl:
+    Value: !Ref PipelineFailureQueue
+  RawDataBucketName:
+    Value: !Ref RawDataBucket

@@ -3,8 +3,8 @@
 # reliably as a container image rather than a zip + layer.
 FROM public.ecr.aws/lambda/python:3.12
 
-COPY requirements.txt ${LAMBDA_TASK_ROOT}/requirements.txt
-RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
+COPY requirements-lambda.txt ${LAMBDA_TASK_ROOT}/requirements-lambda.txt
+RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements-lambda.txt
 
 COPY config ${LAMBDA_TASK_ROOT}/config
 COPY src ${LAMBDA_TASK_ROOT}/src
