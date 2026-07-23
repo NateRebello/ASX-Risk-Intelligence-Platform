@@ -34,7 +34,6 @@ Globals:
   Function:
     Timeout: 300
     MemorySize: 1024
-    PackageType: Image
     Tracing: Active
     VpcConfig:
       SubnetIds: !Ref VpcSubnetIds
@@ -47,7 +46,6 @@ Globals:
         DB_USER: !Ref DbUser
         DB_SECRET_ARN: !Ref DbSecretArn
         S3_BUCKET: !Ref RawDataBucket
-        AWS_REGION: !Ref AWS::Region
 
 Resources:
   RawDataBucket:
@@ -122,6 +120,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-ingest-prices
+      PackageType: Image
       Role: !GetAtt PipelineFunctionRole.Arn
       ImageUri: !Ref ImageUri
       ImageConfig: {Command: ["src.ingestion.yahoo_loader.lambda_handler"]}
@@ -129,6 +128,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-ingest-macro
+      PackageType: Image
       Role: !GetAtt PipelineFunctionRole.Arn
       ImageUri: !Ref ImageUri
       ImageConfig: {Command: ["src.ingestion.rba_loader.lambda_handler"]}
@@ -136,6 +136,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-compute-returns
+      PackageType: Image
       Role: !GetAtt PipelineFunctionRole.Arn
       ImageUri: !Ref ImageUri
       ImageConfig: {Command: ["src.analytics.returns.lambda_handler"]}
@@ -143,6 +144,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-compute-volatility
+      PackageType: Image
       Role: !GetAtt PipelineFunctionRole.Arn
       ImageUri: !Ref ImageUri
       ImageConfig: {Command: ["src.analytics.volatility.lambda_handler"]}
@@ -150,6 +152,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-compute-regimes
+      PackageType: Image
       Role: !GetAtt PipelineFunctionRole.Arn
       ImageUri: !Ref ImageUri
       ImageConfig: {Command: ["src.analytics.regimes.lambda_handler"]}
@@ -157,6 +160,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-generate-briefing
+      PackageType: Image
       Role: !GetAtt PipelineFunctionRole.Arn
       ImageUri: !Ref ImageUri
       ImageConfig: {Command: ["src.reports.executive_summary.lambda_handler"]}
@@ -164,6 +168,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: asx-risk-apply-migrations
+      PackageType: Image
       Role: !GetAtt PipelineFunctionRole.Arn
       ImageUri: !Ref ImageUri
       ImageConfig: {Command: ["src.db.migrate_lambda.lambda_handler"]}
@@ -197,7 +202,7 @@ Resources:
           Properties:
             ScheduleExpression: !Ref ScheduleExpression
             Input: '{"runMigrations": false}'
-            DeadLetterConfig: {Type: SQS, Arn: !GetAtt PipelineFailureQueue.Arn}
+            DeadLetterConfig: {Arn: !GetAtt PipelineFailureQueue.Arn}
 
 Outputs:
   StateMachineArn:
