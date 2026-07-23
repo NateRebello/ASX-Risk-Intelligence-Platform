@@ -25,6 +25,7 @@ from sqlalchemy.engine import Engine
 
 from config import settings
 from src.db.engine import get_engine
+from src.storage.s3_archive import archive_dataframe
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -159,6 +160,7 @@ def run(
         ticker = row["ticker"]
         try:
             df = fetch_prices(ticker, period=period, start=start, end=end)
+            archive_dataframe(df, source="yahoo-prices", identifier=ticker)
             n = upsert_prices(engine, ticker, df)
             total_rows += n
             status = "success" if n > 0 else "empty"

@@ -21,7 +21,10 @@ DB_PORT = int(os.getenv("DB_PORT", "5432"))
 DB_NAME = os.getenv("DB_NAME", "asx_risk")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "YourStrongPassword")
+DB_SECRET_ARN = os.getenv("DB_SECRET_ARN", "")
 
+# Used only for local development. AWS resolves DB_SECRET_ARN at runtime in
+# src.db.engine so a database password is not exposed in Lambda configuration.
 SQLALCHEMY_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # --------------------------------------------------------------------------

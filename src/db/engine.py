@@ -12,8 +12,10 @@ import logging
 from contextlib import contextmanager
 from typing import Iterator
 
+import boto3
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.engine import URL
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from config import settings
@@ -23,11 +25,40 @@ logger = logging.getLogger(__name__)
 _engine: Engine | None = None
 
 
+def _database_password() -> str:
+    """Resolve the DB password locally or from Secrets Manager at runtime."""
+    if not settings.DB_SECRET_ARN:
+        return settings.DB_PASSWORD
+
+    response = boto3.client("secretsmanager", region_name=settings.AWS_REGION).get_secret_value(
+        SecretId=settings.DB_SECRET_ARN
+    )
+    secret = response["SecretString"]
+    if secret.lstrip().startswith("{"):
+        import json
+
+        payload = json.loads(secret)
+        return payload["password"]
+    return secret
+
+
+def database_url() -> URL:
+    """Build a URL safely so special characters in passwords are escaped."""
+    return URL.create(
+        "postgresql+psycopg2",
+        username=settings.DB_USER,
+        password=_database_password(),
+        host=settings.DB_HOST,
+        port=settings.DB_PORT,
+        database=settings.DB_NAME,
+    )
+
+
 def get_engine(url: str | None = None) -> Engine:
     """Return a process-wide singleton SQLAlchemy engine."""
     global _engine
     if _engine is None:
-        _engine = create_engine(url or settings.SQLALCHEMY_URL, pool_pre_ping=True, future=True)
+        _engine = create_engine(url or database_url(), pool_pre_ping=True, future=True)
     return _engine
 
 
