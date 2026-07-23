@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+    branches: ["main", "dev"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: asx_risk_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: asx_risk_test
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Apply DB schema
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d asx_risk_test -f sql/schema.sql
+          PGPASSWORD=postgres psql -h localhost -U postgres -d asx_risk_test -f sql/views.sql
+
+      - name: Lint (flake8)
+        run: flake8 src config tests --max-line-length=120 --extend-ignore=E203,W503
+
+      - name: Type-check (mypy, non-blocking)
+        run: mypy src config --ignore-missing-imports || true
+
+      - name: Run tests with coverage
+        run: pytest --cov=src --cov=config --cov-report=term-missing
+
+  build-image:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Lambda container image
+        run: docker build -f Dockerfile.lambda -t asx-risk-pipeline:ci .
+      # Deployment (docker push + `sam deploy`) requires AWS credentials and
+      # is intentionally left as a manual/tag-triggered step — wire up
+      # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY secrets and uncomment the
+      # steps below once an AWS account is provisioned.
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ap-southeast-2
+      # - name: Deploy with SAM
+      #   run: |
+      #     pip install aws-sam-cli
+      #     sam build --template template.yaml
+      #     sam deploy --stack-name asx-risk-pipeline --no-confirm-changeset --no-fail-on-empty-changeset

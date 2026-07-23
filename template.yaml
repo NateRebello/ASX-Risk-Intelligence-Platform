@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ASX Risk Intelligence Platform — daily ETL/analytics pipeline.
+  Ingests ASX prices + macro data, computes returns/volatility/regimes,
+  and generates an executive risk briefing, all on an EventBridge schedule
+  timed to the ASX market close (16:10 AEST / 06:10 UTC).
+
+Parameters:
+  DbHost:
+    Type: String
+    Description: RDS/Aurora Postgres endpoint
+  DbName:
+    Type: String
+    Default: asx_risk
+  DbUser:
+    Type: String
+    Default: postgres
+  DbPasswordSecretArn:
+    Type: String
+    Description: Secrets Manager ARN holding the DB password
+  VpcSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  VpcSecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+
+Globals:
+  Function:
+    Timeout: 300
+    MemorySize: 1024
+    PackageType: Image
+    VpcConfig:
+      SubnetIds: !Ref VpcSubnetIds
+      SecurityGroupIds: !Ref VpcSecurityGroupIds
+    Environment:
+      Variables:
+        DB_HOST: !Ref DbHost
+        DB_NAME: !Ref DbName
+        DB_USER: !Ref DbUser
+        DB_PASSWORD: !Sub '{{resolve:secretsmanager:${DbPasswordSecretArn}}}'
+
+Resources:
+
+  IngestPricesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: asx-risk-ingest-prices
+      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
+      ImageConfig:
+        Command: ["src.ingestion.yahoo_loader.lambda_handler"]
+      Events:
+        DailySchedule:
+          Type: ScheduleV2
+          Properties:
+            # 06:10 UTC == 16:10 AEST (weekday post-close). Adjust for DST.
+            ScheduleExpression: "cron(10 6 ? * MON-FRI *)"
+            Input: '{"period": "5d"}'
+    Metadata:
+      Dockerfile: Dockerfile.lambda
+      DockerContext: .
+
+  IngestMacroFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: asx-risk-ingest-macro
+      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
+      ImageConfig:
+        Command: ["src.ingestion.rba_loader.lambda_handler"]
+      Events:
+        WeeklySchedule:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: "cron(0 7 ? * MON *)"
+            Input: '{"period": "1mo"}'
+    Metadata:
+      Dockerfile: Dockerfile.lambda
+      DockerContext: .
+
+  ComputeReturnsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: asx-risk-compute-returns
+      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
+      ImageConfig:
+        Command: ["src.analytics.returns.lambda_handler"]
+      Events:
+        AfterIngest:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: "cron(20 6 ? * MON-FRI *)"
+
+  ComputeVolatilityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: asx-risk-compute-volatility
+      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
+      ImageConfig:
+        Command: ["src.analytics.volatility.lambda_handler"]
+      Events:
+        AfterReturns:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: "cron(25 6 ? * MON-FRI *)"
+
+  ComputeRegimesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: asx-risk-compute-regimes
+      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
+      ImageConfig:
+        Command: ["src.analytics.regimes.lambda_handler"]
+      Events:
+        AfterVolatility:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: "cron(30 6 ? * MON-FRI *)"
+
+  GenerateBriefingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: asx-risk-generate-briefing
+      ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/asx-risk-pipeline:latest'
+      ImageConfig:
+        Command: ["src.reports.executive_summary.lambda_handler"]
+      Events:
+        AfterRegimes:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: "cron(35 6 ? * MON-FRI *)"
+
+  RawDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'asx-risk-data-lake-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireRawAfter1Year
+            Status: Enabled
+            ExpirationInDays: 365
+
+Outputs:
+  PipelineFunctions:
+    Description: Lambda functions comprising the daily pipeline (run in this order)
+    Value: !Join
+      - ' -> '
+      - - !Ref IngestPricesFunction
+        - !Ref ComputeReturnsFunction
+        - !Ref ComputeVolatilityFunction
+        - !Ref ComputeRegimesFunction
+        - !Ref GenerateBriefingFunction
