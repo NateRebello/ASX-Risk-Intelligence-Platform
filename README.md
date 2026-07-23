@@ -114,16 +114,43 @@ Lambda container image on `main`.
 
 ## AWS Deployment (Milestone 7)
 
-1. Build & push the Lambda container image (`Dockerfile.lambda`) to ECR.
-2. `sam build && sam deploy` using `template.yaml`, supplying your RDS
-   endpoint, VPC subnets/security groups, and a Secrets Manager ARN for the
-   DB password as parameters.
-3. This provisions 5 Lambda functions (ingest prices → ingest macro →
-   compute returns → compute volatility → compute regimes → generate
-   briefing) each on its own `EventBridge` `ScheduleV2` rule, chained ~5-10
-   minutes apart around the 16:00 AEST ASX close, plus an S3 raw-data bucket.
-4. Wire up `scripts/tableau_refresh.py` (Tableau REST API) as a final step
-   if using Tableau Server/Online extracts rather than a live connection.
+The AWS stack deploys **seven** Lambda functions: six pipeline stages plus a
+controlled schema-migration function. A single EventBridge rule starts a Step
+Functions workflow: price and macro ingestion run in parallel, then returns →
+volatility → regimes → briefing run sequentially. This removes the unsafe
+assumption that time-offset cron jobs finish before the next job starts.
+
+### Prerequisites
+
+- An existing private RDS/Aurora PostgreSQL instance; this stack intentionally
+  does not create the database.
+- Private Lambda subnets with a NAT Gateway. The VPC is required for RDS, but
+  the ingestion functions also need internet egress for Yahoo Finance, RBA,
+  and ABS.
+- An RDS security group allowing Lambda security-group traffic on PostgreSQL
+  port 5432.
+- A Secrets Manager secret containing either a plaintext password or JSON with
+  a `password` field. The function fetches it at runtime; do not set
+  `DB_PASSWORD` in AWS Lambda configuration.
+- GitHub repository variables: `AWS_DEPLOY_ROLE_ARN`, `AWS_ECR_REPOSITORY`,
+  `AWS_DB_HOST`, `AWS_DB_NAME`, `AWS_DB_USER`, `AWS_VPC_SUBNET_IDS`, and
+  `AWS_VPC_SECURITY_GROUP_IDS`; plus secret `AWS_DB_SECRET_ARN`.
+
+### Deploy
+
+`deploy.yml` uses GitHub OIDC, builds an immutable ECR image tagged with the
+commit SHA, validates SAM, and deploys on a release tag or manual dispatch.
+The deploy role needs narrowly scoped CloudFormation, ECR, IAM pass-role,
+Lambda, Step Functions, EventBridge, S3, SNS, SQS, and Secrets Manager
+permissions for this stack.
+
+Apply `sql/schema.sql` and `sql/views.sql` to RDS before the first normal run,
+or start a one-off state-machine execution with `{"runMigrations": true}`.
+Do not enable that flag for the daily schedule.
+
+The state machine publishes failures to SNS and retains them in the provisioned
+SQS failure queue. Inspect Lambda and Step Functions logs in CloudWatch, then
+verify `daily_prices`, `returns`, and `volatility` row counts in PostgreSQL.
 
 **Note:** provisioning real AWS resources (RDS, IAM roles, ECR, Lambda) and
 a real Tableau Server site requires your own AWS account and Tableau
