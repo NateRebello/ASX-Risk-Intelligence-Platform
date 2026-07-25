@@ -94,6 +94,7 @@ jobs:
             --stack-name asx-risk-platform \
             --region "$AWS_REGION" \
             --capabilities CAPABILITY_IAM \
+            --image-repository "${IMAGE_URI%:*}" \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
