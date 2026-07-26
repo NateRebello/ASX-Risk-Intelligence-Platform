@@ -58,7 +58,15 @@ def get_engine(url: str | None = None) -> Engine:
     """Return a process-wide singleton SQLAlchemy engine."""
     global _engine
     if _engine is None:
-        _engine = create_engine(url or database_url(), pool_pre_ping=True, future=True)
+        # RDS commonly requires TLS (rds.force_ssl). Without sslmode, libpq
+        # connects in cleartext and PostgreSQL rejects with "no encryption"
+        # (often alongside a misleading password-auth failure).
+        _engine = create_engine(
+            url or database_url(),
+            pool_pre_ping=True,
+            future=True,
+            connect_args={"sslmode": "require"},
+        )
     return _engine
 
 
