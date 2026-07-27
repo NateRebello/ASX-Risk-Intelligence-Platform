@@ -55,3 +55,21 @@ def test_database_url_escapes_password(monkeypatch):
 
     assert str(url).startswith("postgresql+psycopg2://")
     assert "safe%2Fpassword" in url.render_as_string(hide_password=False)
+
+
+def test_get_engine_requires_ssl(monkeypatch):
+    captured = {}
+
+    def fake_create_engine(url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(settings, "DB_SECRET_ARN", "")
+    monkeypatch.setattr(settings, "DB_PASSWORD", "safe/password")
+    monkeypatch.setattr(db_engine, "create_engine", fake_create_engine)
+    db_engine._engine = None
+
+    db_engine.get_engine()
+
+    assert captured["kwargs"]["connect_args"] == {"sslmode": "require"}
