@@ -73,3 +73,35 @@ def test_get_engine_requires_ssl(monkeypatch):
     db_engine.get_engine()
 
     assert captured["kwargs"]["connect_args"] == {"sslmode": "require"}
+
+
+def test_run_migrations_executes_statements_via_text(tmp_path, monkeypatch):
+    sql_dir = tmp_path / "sql"
+    sql_dir.mkdir()
+    (sql_dir / "schema.sql").write_text(
+        "CREATE TABLE IF NOT EXISTS demo (id INT);  -- percent % note\n",
+        encoding="utf-8",
+    )
+
+    executed = []
+
+    class FakeConn:
+        def execute(self, statement):
+            executed.append(statement)
+
+    class FakeBegin:
+        def __enter__(self):
+            return FakeConn()
+
+        def __exit__(self, *args):
+            return False
+
+    class FakeEngine:
+        def begin(self):
+            return FakeBegin()
+
+    monkeypatch.setattr(db_engine, "get_engine", lambda: FakeEngine())
+    db_engine.run_migrations(sql_dir=str(sql_dir))
+
+    assert len(executed) == 1
+    assert "CREATE TABLE IF NOT EXISTS demo" in str(executed[0])
