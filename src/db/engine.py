@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from typing import Iterator
 
 import boto3
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.engine import URL
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -113,7 +113,10 @@ def run_migrations(sql_dir: str = "sql") -> None:
         with engine.begin() as conn:
             for statement in _split_statements(sql_text):
                 if statement.strip():
-                    conn.exec_driver_sql(statement)
+                    # Use text() instead of exec_driver_sql(): psycopg2 treats '%'
+                    # as pyformat placeholders (even inside SQL comments), which
+                    # triggers TypeError: immutabledict is not a sequence.
+                    conn.execute(text(statement))
         logger.info("Applied %s", path)
 
 

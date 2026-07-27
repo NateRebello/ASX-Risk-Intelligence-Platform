@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS sector_risk_contributions (
     date          DATE,
     sector        TEXT,
     weight        NUMERIC,
-    risk_contribution_pct NUMERIC,  -- % of total portfolio variance/VaR
+    risk_contribution_pct NUMERIC,  -- percent of total portfolio variance/VaR
     PRIMARY KEY (portfolio_id, date, sector)
 );
 
