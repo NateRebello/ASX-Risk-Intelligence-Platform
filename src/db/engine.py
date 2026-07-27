@@ -122,5 +122,18 @@ def run_migrations(sql_dir: str = "sql") -> None:
 
 def _split_statements(sql_text: str) -> list[str]:
     """Naive statement splitter on semicolons (schema files have no
-    semicolons inside string literals, so this is safe here)."""
-    return [s.strip() for s in sql_text.split(";") if s.strip()]
+    semicolons inside string literals, so this is safe here).
+
+    Comment-only fragments left after a trailing ';' are skipped.
+    """
+    statements: list[str] = []
+    for chunk in sql_text.split(";"):
+        statement = chunk.strip()
+        if not statement:
+            continue
+        without_line_comments = "\n".join(
+            line for line in statement.splitlines() if not line.strip().startswith("--")
+        ).strip()
+        if without_line_comments:
+            statements.append(statement)
+    return statements

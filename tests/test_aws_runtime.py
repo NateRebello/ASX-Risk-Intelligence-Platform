@@ -79,7 +79,7 @@ def test_run_migrations_executes_statements_via_text(tmp_path, monkeypatch):
     sql_dir = tmp_path / "sql"
     sql_dir.mkdir()
     (sql_dir / "schema.sql").write_text(
-        "CREATE TABLE IF NOT EXISTS demo (id INT);  -- percent % note\n",
+        "-- percent % note\nCREATE TABLE IF NOT EXISTS demo (id INT);\n",
         encoding="utf-8",
     )
 
