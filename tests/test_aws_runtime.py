@@ -76,6 +76,7 @@ def test_get_engine_requires_ssl(monkeypatch):
 
 
 def test_run_migrations_executes_statements_via_text(tmp_path, monkeypatch):
+    """Migrations should execute one TextClause per real SQL statement."""
     sql_dir = tmp_path / "sql"
     sql_dir.mkdir()
     (sql_dir / "schema.sql").write_text(
@@ -103,5 +104,5 @@ def test_run_migrations_executes_statements_via_text(tmp_path, monkeypatch):
     monkeypatch.setattr(db_engine, "get_engine", lambda: FakeEngine())
     db_engine.run_migrations(sql_dir=str(sql_dir))
 
-    assert len(executed) == 1
+    assert len(executed) == 1, executed
     assert "CREATE TABLE IF NOT EXISTS demo" in str(executed[0])
