@@ -1,0 +1,51 @@
+ticker,name,sector,industry
+ALL,Aristocrat Leisure,Consumer Discretionary,Consumer Services
+ALQ,ALS,Industrials,Industrials
+ANZ,Australia & New Zealand Banking Group,Financials,Banks
+APA,APA Group,Utilities,Gas Utilities
+ASX,ASX,Financials,Financial Exchanges & Data
+BHP,BHP,Materials,Metals & Mining
+BSL,BlueScope,Materials,Materials
+BXB,Brambles,Industrials,Commercial Services
+CAR,CAR Group,Communication Services,Interactive Media
+CBA,Commonwealth Bank,Financials,Banks
+COL,Coles Group,Consumer Staples,Food & Staples Retailing
+CPU,Computershare,Information Technology,IT Services
+CSL,CSL,Healthcare,Biotechnology
+EVN,Evolution Mining,Materials,Gold
+FMG,Fortescue,Materials,Metals & Mining
+GMG,Goodman Group,Real Estate,REIT
+GPT,GPT Group,Real Estate,REIT
+IAG,Insurance Australia Group,Financials,Insurance
+JHX,James Hardie,Materials,Materials
+LYC,Lynas Rare Earths,Materials,Materials
+MIN,Mineral Resources,Materials,Metals & Mining
+MPL,Medibank,Financials,Insurance
+MQG,Macquarie Group,Financials,Diversified Financials
+NAB,National Australia Bank,Financials,Banks
+NEM,Newmont,Materials,Gold
+NST,Northern Star Resources,Materials,Gold
+NXT,NextDC,Information Technology,IT Services
+ORG,Origin Energy,Utilities,Multi-Utilities
+ORI,Orica,Materials,Chemicals
+PLS,PLS Group,Materials,Materials
+QAN,Qantas,Industrials,Airlines
+QBE,QBE Insurance,Financials,Insurance
+RIO,Rio Tinto,Materials,Metals & Mining
+RMD,ResMed,Healthcare,Health Care Equipment
+S32,South32,Materials,Metals & Mining
+SCG,Scentre Group,Real Estate,REIT
+SGP,Stockland,Real Estate,REIT
+SHL,Sonic Healthcare,Healthcare,Health Care Services
+SIG,Sigma Healthcare,Healthcare,Health Care Services
+SOL,Soul Patts,Financials,Diversified Financials
+STO,Santos,Energy,Oil & Gas
+SUN,Suncorp,Financials,Insurance
+TCL,Transurban,Industrials,Transportation Infrastructure
+TLC,The Lottery Corporation,Consumer Discretionary,Consumer Services
+TLS,Telstra,Communication Services,Telecommunication Services
+WBC,Westpac,Financials,Banks
+WDS,Woodside Energy Group,Energy,Oil & Gas
+WES,Wesfarmers,Consumer Discretionary,Retailing
+WOW,Woolworths Group,Consumer Staples,Food & Staples Retailing
+XRO,Xero,Information Technology,Software

@@ -89,6 +89,7 @@ jobs:
           DB_SECRET_ARN: ${{ secrets.AWS_DB_SECRET_ARN }}
           VPC_SUBNET_IDS: ${{ vars.AWS_VPC_SUBNET_IDS }}
           VPC_SECURITY_GROUP_IDS: ${{ vars.AWS_VPC_SECURITY_GROUP_IDS }}
+          MARKET_UNIVERSE_FILE: ${{ vars.AWS_MARKET_UNIVERSE_FILE || 'asx50.csv' }}
         run: |
           sam deploy \
             --stack-name asx-risk-platform \
@@ -105,4 +106,12 @@ jobs:
               DbUser="$DB_USER" \
               DbSecretArn="$DB_SECRET_ARN" \
               VpcSubnetIds="$VPC_SUBNET_IDS" \
-              VpcSecurityGroupIds="$VPC_SECURITY_GROUP_IDS"
+              VpcSecurityGroupIds="$VPC_SECURITY_GROUP_IDS" \
+              MarketUniverseFile="$MARKET_UNIVERSE_FILE"
+
+      - name: Publish market universe config to S3
+        env:
+          RAW_DATA_BUCKET: asx-risk-data-lake-${{ vars.AWS_ACCOUNT_ID || '538799982998' }}-${{ env.AWS_REGION }}
+        run: |
+          aws s3 cp config/universes/asx50.csv "s3://$RAW_DATA_BUCKET/config/universes/asx50.csv"
+          aws s3 cp config/universes/asx200.csv "s3://$RAW_DATA_BUCKET/config/universes/asx200.csv"

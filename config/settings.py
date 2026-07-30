@@ -48,13 +48,31 @@ ABS_CPI_API_URL = os.getenv(
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")  # optional cross-check source
 
 # --------------------------------------------------------------------------
-# Universe: representative ASX 200 constituents across major GICS sectors.
-# (A trimmed, hand-curated subset is used by default so the pipeline runs
-# quickly in dev/CI; swap in the full ASX200 list for production runs by
-# setting ASX_TICKERS_FILE to a CSV of ticker,name,sector,industry.)
+# Universe: which ASX tickers the pipeline ingests.
+#
+# The *default* is now the version-controlled ASX 50 in
+# config/universes/asx50.csv, resolved at runtime by src/config/universe.py
+# (local settings.yaml -> AWS SSM/S3 override -> DEFAULT_UNIVERSE fallback
+# below). See docs/adr/0001-market-universe-and-tableau.md.
+#
+# ASX_TICKERS_FILE remains a hard override (explicit CSV path) for local
+# ad-hoc runs and tests, taking precedence over everything else.
 # --------------------------------------------------------------------------
 ASX_TICKERS_FILE = os.getenv("ASX_TICKERS_FILE", "")
 
+# AWS SSM Parameter Store name holding the *active universe filename*
+# (e.g. "asx50.csv" or "asx200.csv"). Reading it is best-effort: if SSM is
+# unreachable (local dev, CI, no AWS credentials) callers silently fall
+# back to settings.yaml. Set to "" to disable the SSM lookup entirely.
+MARKET_UNIVERSE_SSM_PARAM = os.getenv("MARKET_UNIVERSE_SSM_PARAM", "/asx-risk/platform/market-universe")
+
+# S3 key prefix (inside S3_BUCKET) where versioned universe CSVs are
+# published by the deploy workflow. Reading it is also best-effort.
+MARKET_UNIVERSE_S3_PREFIX = os.getenv("MARKET_UNIVERSE_S3_PREFIX", "config/universes/")
+
+# Final hardcoded fallback so the pipeline never has zero tickers even if
+# every configuration source (SSM, S3, local CSV) is unavailable. Retained
+# from the platform's original hand-curated universe.
 DEFAULT_UNIVERSE: list[dict[str, str]] = [
     # Financials
     {"ticker": "CBA", "name": "Commonwealth Bank of Australia", "sector": "Financials", "industry": "Banks"},
