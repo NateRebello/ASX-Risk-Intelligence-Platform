@@ -26,6 +26,7 @@ from sqlalchemy.engine import Engine
 from config import settings
 from src.db.engine import get_engine
 from src.storage.s3_archive import archive_dataframe
+from src.universe.loader import load_universe as _resolve_universe
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -40,16 +41,14 @@ class LoadResult:
 
 
 def load_universe(tickers_file: str = "") -> list[dict[str, str]]:
-    """Return the list of {ticker, name, sector, industry} dicts to ingest."""
-    tickers_file = tickers_file or settings.ASX_TICKERS_FILE
-    if tickers_file:
-        df = pd.read_csv(tickers_file)
-        required = {"ticker", "name", "sector", "industry"}
-        missing = required - set(df.columns)
-        if missing:
-            raise ValueError(f"Tickers file is missing columns: {missing}")
-        return df[list(required)].to_dict("records")
-    return settings.DEFAULT_UNIVERSE
+    """Return the list of {ticker, name, sector, industry} dicts to ingest.
+
+    Resolution precedence (see docs/adr/0001-market-universe-and-tableau.md
+    and src/universe/loader.py): explicit `tickers_file`/`ASX_TICKERS_FILE`
+    override -> AWS SSM/S3 runtime configuration -> settings.yaml's default
+    universe file -> `config.settings.DEFAULT_UNIVERSE` hardcoded fallback.
+    """
+    return _resolve_universe(tickers_file)
 
 
 def upsert_stocks(engine: Engine, universe: list[dict[str, str]]) -> None:

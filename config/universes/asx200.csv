@@ -1,0 +1,201 @@
+ticker,name,sector,industry
+360,Life360,Information Technology,Information Technology
+4DX,4DMedical,Healthcare,Healthcare
+A2M,a2 Milk Company,Consumer Staples,Food Products
+AAI,Alcoa,Materials,Materials
+AFI,Australian Foundation Investment Company,Financials,Financials
+AGL,AGL Energy,Utilities,Electric Utilities
+AIA,Auckland International Airport Limited,Industrials,Industrials
+ALD,Ampol,Energy,Oil & Gas
+ALK,Alkane Resources,Materials,Materials
+ALL,Aristocrat Leisure,Consumer Discretionary,Consumer Services
+ALQ,ALS,Industrials,Industrials
+ALX,Atlas Arteria,Industrials,Industrials
+AMC,Amcor,Materials,Containers & Packaging
+AMP,AMP,Financials,Financials
+ANN,Ansell,Healthcare,Healthcare
+ANZ,Australia & New Zealand Banking Group,Financials,Banks
+APA,APA Group,Utilities,Gas Utilities
+APE,Eagers Automotive,Consumer Discretionary,Consumer Discretionary
+ARB,ARB Corporation,Consumer Discretionary,Consumer Discretionary
+ARG,Argo Investments,Financials,Financials
+ASB,Austal,Industrials,Industrials
+ASK,Abacus Storage King,Real Estate,Real Estate
+ASX,ASX,Financials,Financial Exchanges & Data
+AUB,AUB Group,Financials,Financials
+AZJ,Aurizon,Industrials,Industrials
+BEN,Bendigo & Adelaide Bank,Financials,Banks
+BFL,BSP Financial Group,Financials,Financials
+BGA,Bega Cheese,Consumer Staples,Consumer Staples
+BGL,Bellevue Gold,Materials,Materials
+BHP,BHP,Materials,Metals & Mining
+BOQ,Bank of Queensland,Financials,Banks
+BPT,Beach Energy,Energy,Energy
+BRG,Breville Group,Consumer Discretionary,Consumer Discretionary
+BSL,BlueScope,Materials,Materials
+BWP,BWP Trust,Real Estate,Real Estate
+BXB,Brambles,Industrials,Commercial Services
+CAR,CAR Group,Communication Services,Interactive Media
+CBA,Commonwealth Bank,Financials,Banks
+CDA,Codan,Information Technology,Communications Equipment
+CEN,Contact Energy,Utilities,Utilities
+CGF,Challenger,Financials,Insurance
+CHC,Charter Hall,Real Estate,REIT
+CIA,Champion Iron,Materials,Materials
+CIP,Centuria Industrial REIT,Real Estate,Real Estate
+CLW,Charter Hall Long WALE REIT,Real Estate,Real Estate
+CMM,Capricorn Metals,Materials,Materials
+CNU,Chorus,Communication Services,Communication Services
+COH,Cochlear,Healthcare,Health Care Equipment
+COL,Coles Group,Consumer Staples,Food & Staples Retailing
+CPU,Computershare,Information Technology,IT Services
+CQR,Charter Hall Retail REIT,Real Estate,Real Estate
+CSC,Capstone Copper,Materials,Materials
+CSL,CSL,Healthcare,Biotechnology
+CTD,Corporate Travel Management,Consumer Discretionary,Consumer Discretionary
+CWY,Cleanaway,Industrials,Industrials
+CYL,Catalyst Metals,Materials,Materials
+DBI,Dalrymple Bay Infrastructure,Industrials,Industrials
+DNL,Dyno Nobel,Materials,Materials
+DOW,Downer Group,Industrials,Industrials
+DRO,Droneshield,Industrials,Industrials
+DRR,Deterra Royalties,Materials,Materials
+DXS,Dexus,Real Estate,REIT
+DYL,Deep Yellow,Energy,Energy
+EBO,EBOS Group,Healthcare,Healthcare
+EDV,Endeavour Group,Consumer Staples,Beverages
+EMR,Emerald Resources,Materials,Materials
+EOS,Electro Optic Systems Holdings,Industrials,Industrials
+EVN,Evolution Mining,Materials,Gold
+EVT,EVT,Communication Services,Communication Services
+FBU,Fletcher Building,Industrials,Industrials
+FLT,Flight Centre Travel Group,Consumer Discretionary,Consumer Discretionary
+FMG,Fortescue,Materials,Metals & Mining
+FPH,Fisher & Paykel Healthcare,Healthcare,Health Care Equipment
+FRW,Freightways Group,Industrials,Industrials
+GDG,Generation Development Group,Financials,Financials
+GGP,Greatland Resources,Materials,Materials
+GMD,Genesis Minerals,Materials,Materials
+GMG,Goodman Group,Real Estate,REIT
+GNE,Genesis Energy,Utilities,Utilities
+GPT,GPT Group,Real Estate,REIT
+GQG,GQG Partners,Financials,Financials
+HDN,HomeCo Daily Needs REIT,Real Estate,Real Estate
+HUB,HUB24,Financials,Financials
+HVN,Harvey Norman,Consumer Discretionary,Retailing
+IAG,Insurance Australia Group,Financials,Insurance
+IFL,Insignia Financial,Financials,Financials
+IFT,Infratil,Financials,Financials
+IGO,IGO,Materials,Materials
+ILU,Iluka Resources,Materials,Materials
+IMD,IMDEX,Materials,Materials
+JBH,JB Hi-Fi,Consumer Discretionary,Retailing
+JHX,James Hardie,Materials,Materials
+L1G,L1 Group,Financials,Financials
+LLC,Lendlease,Real Estate,Real Estate
+LNW,Light & Wonder,Consumer Discretionary,Consumer Discretionary
+LOV,Lovisa,Consumer Discretionary,Consumer Discretionary
+LSF,L1 Long Short Fund,Financials,Financials
+LTR,Liontown Resources,Materials,Materials
+LYC,Lynas Rare Earths,Materials,Materials
+MCY,Mercury NZ,Utilities,Utilities
+MEZ,Meridian Energy,Utilities,Utilities
+MFF,MFF Capital Investments,Financials,Financials
+MFG,Magellan Financial Group,Financials,Financials
+MGR,Mirvac,Real Estate,REIT
+MIN,Mineral Resources,Materials,Metals & Mining
+MND,Monadelphous Group,Industrials,Industrials
+MPL,Medibank,Financials,Insurance
+MQG,Macquarie Group,Financials,Diversified Financials
+MSB,Mesoblast,Healthcare,Healthcare
+MTS,Metcash,Consumer Staples,Food & Staples Retailing
+MXT,Metrics Master Income Trust,Financials,Financials
+NAB,National Australia Bank,Financials,Banks
+NEM,Newmont,Materials,Gold
+NHC,New Hope,Energy,Energy
+NHF,Nib,Financials,Insurance
+NIC,Nickel Industries,Materials,Materials
+NSR,National Storage,Real Estate,Real Estate
+NST,Northern Star Resources,Materials,Gold
+NWH,NRW Holdings,Industrials,Industrials
+NWL,Netwealth Group,Financials,Financials
+NWS,News Corp Class B,Communication Services,Media
+NXG,Nexgen Energy,Energy,Energy
+NXT,NextDC,Information Technology,IT Services
+OBM,Ora Banda Mining,Materials,Materials
+ORA,Orora,Materials,Materials
+ORG,Origin Energy,Utilities,Multi-Utilities
+ORI,Orica,Materials,Chemicals
+PDI,Predictive Discovery,Materials,Materials
+PDN,Paladin Energy,Energy,Energy
+PLS,PLS Group,Materials,Materials
+PME,Pro Medicus,Healthcare,Health Care Technology
+PMV,Premier Investments,Consumer Discretionary,Consumer Discretionary
+PNI,Pinnacle Investment Management,Financials,Financials
+PPT,Perpetual,Financials,Financials
+PRN,Perenti,Materials,Materials
+PRU,Perseus Mining,Materials,Materials
+PXA,Pexa Group,Real Estate,Real Estate
+QAN,Qantas,Industrials,Airlines
+QBE,QBE Insurance,Financials,Insurance
+QUB,Qube Holdings,Industrials,Industrials
+RDX,Redox,Industrials,Industrials
+REA,REA Group,Communication Services,Interactive Media
+REG,Regis Healthcare,Healthcare,Healthcare
+REH,Reece Group,Industrials,Industrials
+RGN,Region Group,Real Estate,Real Estate
+RHC,Ramsay Health Care,Healthcare,Health Care Services
+RIO,Rio Tinto,Materials,Metals & Mining
+RMD,ResMed,Healthcare,Health Care Equipment
+RMS,Ramelius Resources,Materials,Materials
+RRL,Regis Resources,Materials,Materials
+RSG,Resolute Mining,Materials,Materials
+RWC,Reliance Worldwide Corporation,Industrials,Industrials
+RYM,Ryman Healthcare,Healthcare,Healthcare
+S32,South32,Materials,Metals & Mining
+SCG,Scentre Group,Real Estate,REIT
+SDF,Steadfast Group,Financials,Financials
+SEK,Seek,Communication Services,Interactive Media
+SFR,Sandfire Resources,Materials,Materials
+SGH,SGH,Industrials,Industrials
+SGM,Sims Metal,Materials,Materials
+SGP,Stockland,Real Estate,REIT
+SHL,Sonic Healthcare,Healthcare,Health Care Services
+SIG,Sigma Healthcare,Healthcare,Health Care Services
+SMR,Stanmore Resources,Materials,Materials
+SNZ,Summerset Group Holdings,Healthcare,Healthcare
+SOL,Soul Patts,Financials,Diversified Financials
+SPK,Spark New Zealand,Communication Services,Communication Services
+STO,Santos,Energy,Oil & Gas
+SUL,Super Retail Group,Consumer Discretionary,Consumer Discretionary
+SUN,Suncorp,Financials,Insurance
+TAH,Tabcorp,Consumer Discretionary,Consumer Discretionary
+TCL,Transurban,Industrials,Transportation Infrastructure
+TLC,The Lottery Corporation,Consumer Discretionary,Consumer Services
+TLS,Telstra,Communication Services,Telecommunication Services
+TLX,Telix Pharmaceuticals,Healthcare,Healthcare
+TNE,TechnologyOne,Information Technology,Software
+TPG,TPG Telecom,Communication Services,Telecommunication Services
+TUA,Tuas,Communication Services,Communication Services
+TWE,Treasury Wine Estates,Consumer Staples,Beverages
+VAU,Vault Minerals,Materials,Materials
+VCX,Vicinity Centres,Real Estate,REIT
+VEA,Viva Energy,Energy,Oil & Gas
+VGN,Virgin Australia Holdings,Industrials,Industrials
+VNT,Ventia Services Group,Industrials,Industrials
+WAF,West African Resources,Materials,Materials
+WAM,WAM Capital,Financials,Financials
+WBC,Westpac,Financials,Banks
+WDS,Woodside Energy Group,Energy,Oil & Gas
+WES,Wesfarmers,Consumer Discretionary,Retailing
+WGX,Westgold Resources,Materials,Materials
+WHC,Whitehaven Coal,Energy,Coal
+WLE,WAM Leaders,Financials,Financials
+WOR,Worley,Energy,Energy
+WOW,Woolworths Group,Consumer Staples,Food & Staples Retailing
+WTC,Wisetech Global,Information Technology,Software
+XRO,Xero,Information Technology,Software
+XYZ,"Block, Inc.",Financials,Financials
+YAL,Yancoal Australia,Materials,Materials
+ZIM,Zimplats Holdings,Materials,Materials
+ZIP,Zip,Financials,Financials

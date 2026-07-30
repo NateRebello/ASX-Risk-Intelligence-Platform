@@ -2,6 +2,7 @@ import responses
 
 from src.ingestion.rba_loader import fetch_cash_rate
 from src.ingestion.yahoo_loader import _none_if_nan, load_universe
+from src.universe import loader as universe_loader
 
 # A trimmed but structurally faithful sample of the real RBA F1.1 CSV
 # format (verified against https://www.rba.gov.au/statistics/tables/csv/f1.1-data.csv):
@@ -23,9 +24,15 @@ SAMPLE_RBA_CSV = (
 )
 
 
-def test_load_universe_default_matches_settings_when_no_file():
+def test_load_universe_default_matches_settings_when_no_file(monkeypatch):
+    """With no explicit override, SSM/S3 unavailable, this resolves to the
+    local settings.yaml default (asx50.csv) — see src/universe/loader.py."""
+    monkeypatch.setattr(universe_loader, "active_filename_from_ssm", lambda: None)
+    monkeypatch.setattr(universe_loader, "load_from_s3", lambda filename: None)
+
     universe = load_universe(tickers_file="")
-    assert len(universe) > 0
+
+    assert len(universe) == 50
     assert {"ticker", "name", "sector", "industry"}.issubset(universe[0].keys())
 
 

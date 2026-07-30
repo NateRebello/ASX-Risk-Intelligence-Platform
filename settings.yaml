@@ -1,0 +1,19 @@
+# Local/default runtime configuration for the ASX Risk Intelligence Platform.
+#
+# `market_universe` selects which file under config/universes/ the pipeline
+# ingests by default. This file is baked into the Lambda image and used
+# whenever the AWS SSM Parameter Store runtime override
+# (/asx-risk/platform/market-universe) is unavailable or unset — see
+# docs/adr/0001-market-universe-and-tableau.md and src/config/universe.py.
+#
+# To switch the *deployed* pipeline to ASX 200 without any code change or
+# redeploy, use the SSM parameter instead of editing this file:
+#
+#   aws ssm put-parameter \
+#     --name /asx-risk/platform/market-universe \
+#     --type String --value asx200.csv --overwrite \
+#     --region ap-southeast-2
+#
+# Editing this file only changes the *local dev / CI* default and the
+# fallback baked into the next deployed image.
+market_universe: asx50.csv

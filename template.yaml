@@ -29,6 +29,16 @@ Parameters:
     Type: String
     Default: cron(10 6 ? * MON-FRI *)
     Description: UTC schedule; account for AEST/AEDT operational policy.
+  MarketUniverseFile:
+    Type: String
+    Default: asx50.csv
+    AllowedValues: [asx50.csv, asx200.csv]
+    Description: >-
+      Seeds the /asx-risk/platform/market-universe SSM parameter on deploy.
+      To switch universes WITHOUT a redeploy, run `aws ssm put-parameter
+      --name /asx-risk/platform/market-universe --overwrite --value ...`
+      instead — but note the next deploy resets it to this parameter's
+      value unless this is also updated (see ADR 0001).
 
 Globals:
   Function:
@@ -46,8 +56,23 @@ Globals:
         DB_USER: !Ref DbUser
         DB_SECRET_ARN: !Ref DbSecretArn
         S3_BUCKET: !Ref RawDataBucket
+        MARKET_UNIVERSE_SSM_PARAM: /asx-risk/platform/market-universe
+        MARKET_UNIVERSE_S3_PREFIX: 'config/universes/'
 
 Resources:
+  MarketUniverseParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /asx-risk/platform/market-universe
+      Type: String
+      Value: !Ref MarketUniverseFile
+      Description: >-
+        Active ASX universe CSV filename (config/universes/<name>), read at
+        runtime by src/universe/loader.py. Override with `aws ssm
+        put-parameter --overwrite` for a same-day switch with no redeploy;
+        see docs/adr/0001-market-universe-and-tableau.md for the caveat
+        about this value reverting on the next `sam deploy`.
+
   RawDataBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -115,6 +140,12 @@ Resources:
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub '${RawDataBucket.Arn}/raw/*'
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${RawDataBucket.Arn}/config/universes/*'
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asx-risk/platform/market-universe'
 
   IngestPricesFunction:
     Type: AWS::Serverless::Function

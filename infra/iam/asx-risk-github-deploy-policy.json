@@ -63,6 +63,26 @@
       "Resource": "arn:aws:s3:::asx-risk-data-lake-538799982998-ap-southeast-2"
     },
     {
+      "Sid": "PipelineUniverseConfigObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::asx-risk-data-lake-538799982998-ap-southeast-2/config/universes/*"
+    },
+    {
+      "Sid": "PipelineUniverseSsmParameter",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:PutParameter",
+        "ssm:GetParameter",
+        "ssm:AddTagsToResource",
+        "ssm:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:ssm:ap-southeast-2:538799982998:parameter/asx-risk/platform/market-universe"
+    },
+    {
       "Sid": "PipelineLambdaFunctions",
       "Effect": "Allow",
       "Action": [
