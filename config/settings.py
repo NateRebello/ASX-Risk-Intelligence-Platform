@@ -22,6 +22,10 @@ DB_NAME = os.getenv("DB_NAME", "asx_risk")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "YourStrongPassword")
 DB_SECRET_ARN = os.getenv("DB_SECRET_ARN", "")
+# RDS requires TLS (`require`). Local docker-compose / GitHub Actions Postgres
+# typically have no SSL — set DB_SSLMODE=disable there. Valid libpq values:
+# disable, allow, prefer, require, verify-ca, verify-full.
+DB_SSLMODE = os.getenv("DB_SSLMODE", "require")
 
 # Used only for local development. AWS resolves DB_SECRET_ARN at runtime in
 # src.db.engine so a database password is not exposed in Lambda configuration.
@@ -51,7 +55,7 @@ FRED_API_KEY = os.getenv("FRED_API_KEY", "")  # optional cross-check source
 # Universe: which ASX tickers the pipeline ingests.
 #
 # The *default* is now the version-controlled ASX 50 in
-# config/universes/asx50.csv, resolved at runtime by src/config/universe.py
+# config/universes/asx50.csv, resolved at runtime by src/universe/loader.py
 # (local settings.yaml -> AWS SSM/S3 override -> DEFAULT_UNIVERSE fallback
 # below). See docs/adr/0001-market-universe-and-tableau.md.
 #

@@ -54,18 +54,29 @@ def database_url() -> URL:
     )
 
 
+def reset_engine() -> None:
+    """Drop the process-wide engine singleton (used by tests)."""
+    global _engine
+    if _engine is not None:
+        dispose = getattr(_engine, "dispose", None)
+        if callable(dispose):
+            dispose()
+    _engine = None
+
+
 def get_engine(url: str | None = None) -> Engine:
     """Return a process-wide singleton SQLAlchemy engine."""
     global _engine
     if _engine is None:
         # RDS commonly requires TLS (rds.force_ssl). Without sslmode, libpq
         # connects in cleartext and PostgreSQL rejects with "no encryption"
-        # (often alongside a misleading password-auth failure).
+        # (often alongside a misleading password-auth failure). Local/CI
+        # Postgres usually needs DB_SSLMODE=disable — see config.settings.
         _engine = create_engine(
             url or database_url(),
             pool_pre_ping=True,
             future=True,
-            connect_args={"sslmode": "require"},
+            connect_args={"sslmode": settings.DB_SSLMODE},
         )
     return _engine
 

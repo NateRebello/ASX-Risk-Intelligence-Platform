@@ -16,7 +16,9 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import time
 from dataclasses import dataclass
+from datetime import date
 
 import pandas as pd
 import yfinance as yf
@@ -25,6 +27,7 @@ from sqlalchemy.engine import Engine
 
 from config import settings
 from src.db.engine import get_engine
+from src.ingestion.run_metadata import build_yahoo_metadata, persist_run_metadata
 from src.storage.s3_archive import archive_dataframe
 from src.universe.loader import load_universe as _resolve_universe
 
@@ -137,24 +140,18 @@ def _none_if_nan(value: float) -> float | None:
     return None if pd.isna(value) else float(value)
 
 
-def _log_ingestion(engine: Engine, source: str, rows: int, status: str, detail: str = "") -> None:
-    stmt = text("""
-        INSERT INTO ingestion_log (source, rows_written, status, detail)
-        VALUES (:source, :rows, :status, :detail)
-        """)
-    with engine.begin() as conn:
-        conn.execute(stmt, {"source": source, "rows": rows, "status": status, "detail": detail[:500]})
-
-
 def run(
     period: str = "5y", start: str | None = None, end: str | None = None, tickers_file: str = ""
 ) -> list[LoadResult]:
+    started = time.perf_counter()
     engine = get_engine()
     universe = load_universe(tickers_file)
     upsert_stocks(engine, universe)
 
     results: list[LoadResult] = []
     total_rows = 0
+    min_date: date | None = None
+    max_date: date | None = None
     for row in universe:
         ticker = row["ticker"]
         try:
@@ -162,6 +159,13 @@ def run(
             archive_dataframe(df, source="yahoo-prices", identifier=ticker)
             n = upsert_prices(engine, ticker, df)
             total_rows += n
+            if not df.empty and "date" in df.columns:
+                series_min = df["date"].min()
+                series_max = df["date"].max()
+                if series_min is not None and (min_date is None or series_min < min_date):
+                    min_date = series_min
+                if series_max is not None and (max_date is None or series_max > max_date):
+                    max_date = series_max
             status = "success" if n > 0 else "empty"
             results.append(LoadResult(ticker, n, status))
             logger.info("%s: upserted %d rows (%s)", ticker, n, status)
@@ -169,9 +173,27 @@ def run(
             logger.warning("%s: failed to load — %s", ticker, exc)
             results.append(LoadResult(ticker, 0, "error", str(exc)))
 
-    failed = [r for r in results if r.status == "error"]
-    overall_status = "success" if not failed else ("partial" if len(failed) < len(results) else "failed")
-    _log_ingestion(engine, "yahoo", total_rows, overall_status, f"{len(failed)} tickers failed")
+    duration_ms = int((time.perf_counter() - started) * 1000)
+    metadata = build_yahoo_metadata(
+        results=results,
+        total_rows=total_rows,
+        period=period,
+        start=start,
+        end=end,
+        tickers_file=tickers_file,
+        duration_ms=duration_ms,
+        min_date=min_date,
+        max_date=max_date,
+    )
+    persist_run_metadata(engine, metadata)
+    logger.info(
+        "Ingestion metadata: universe=%s version=%s status=%s rows=%d duration_ms=%d",
+        metadata.universe_name,
+        metadata.universe_version,
+        metadata.status,
+        metadata.rows_written,
+        metadata.duration_ms,
+    )
     return results
 
 
