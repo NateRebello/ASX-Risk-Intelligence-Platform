@@ -1,18 +1,17 @@
 # Tableau Dashboard — ASX Risk Intelligence Platform
 
-This folder contains everything needed to build/refresh the Tableau
-dashboard described in Milestone 6. Tableau workbooks are binary/XML
-artifacts normally authored interactively in Tableau Desktop, so rather
-than ship an unverifiable `.twbx`, this folder ships:
+This folder contains source SQL and instructions for building the Tableau
+dashboard described in Milestone 6.
 
-1. `asx_risk_starter.twb` — a starter workbook XML with the PostgreSQL
-   connection and named custom-SQL data sources pre-wired for each
-   dashboard page. Open it in Tableau Desktop (File → Open), enter your
-   DB credentials when prompted, and build the visualizations below on
-   top of the provided data sources.
-2. `queries/` — the raw SQL behind each panel, in case you'd rather build
-   the data sources manually or query the extracts elsewhere first (Excel,
-   Power BI, Superset — the SQL is engine-agnostic Postgres).
+Start with [`TABLEAU_DESKTOP_SETUP.md`](TABLEAU_DESKTOP_SETUP.md). It is the
+supported, click-by-click workflow for creating a Tableau Desktop workbook
+through the PostgreSQL connector and Custom SQL interface.
+
+`asx_risk_starter.twb` is retained only as an XML reference for the four
+data-source queries. It is not a supported Tableau Desktop workbook.
+
+`queries/` contains the raw SQL behind each panel, suitable for Tableau
+Custom SQL or execution in another PostgreSQL client.
 
 ## Connecting Tableau to Postgres
 
