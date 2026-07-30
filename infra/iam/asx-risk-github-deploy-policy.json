@@ -77,8 +77,10 @@
       "Action": [
         "ssm:PutParameter",
         "ssm:GetParameter",
+        "ssm:DeleteParameter",
         "ssm:AddTagsToResource",
-        "ssm:ListTagsForResource"
+        "ssm:ListTagsForResource",
+        "ssm:RemoveTagsFromResource"
       ],
       "Resource": "arn:aws:ssm:ap-southeast-2:538799982998:parameter/asx-risk/platform/market-universe"
     },
