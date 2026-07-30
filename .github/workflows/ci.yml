@@ -30,6 +30,7 @@ jobs:
       DB_NAME: asx_risk_test
       DB_USER: postgres
       DB_PASSWORD: postgres
+      DB_SSLMODE: disable
 
     steps:
       - uses: actions/checkout@v4

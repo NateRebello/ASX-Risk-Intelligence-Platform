@@ -90,10 +90,31 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE TABLE IF NOT EXISTS ingestion_log (
-    id            SERIAL PRIMARY KEY,
-    source        TEXT NOT NULL,       -- e.g. 'yahoo', 'rba', 'abs'
-    run_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-    rows_written  INTEGER,
-    status        TEXT,                -- 'success' | 'failed' | 'partial'
-    detail        TEXT
+    id                 SERIAL PRIMARY KEY,
+    source             TEXT NOT NULL,       -- e.g. 'yahoo', 'rba', 'macro'
+    run_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    rows_written       INTEGER,
+    status             TEXT,                -- 'success' | 'failed' | 'partial'
+    detail             TEXT,
+    -- Step 10 run metadata (nullable for older rows / non-equity sources)
+    universe_name      TEXT,
+    universe_version   TEXT,
+    period             TEXT,
+    tickers_attempted  INTEGER,
+    tickers_succeeded  INTEGER,
+    tickers_failed     INTEGER,
+    min_date           DATE,
+    max_date           DATE,
+    duration_ms        INTEGER
 );
+
+-- Idempotent column adds for databases that already had the narrower table.
+ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS universe_name TEXT;
+ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS universe_version TEXT;
+ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS period TEXT;
+ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS tickers_attempted INTEGER;
+ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS tickers_succeeded INTEGER;
+ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS tickers_failed INTEGER;
+ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS min_date DATE;
+ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS max_date DATE;
+ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS duration_ms INTEGER;

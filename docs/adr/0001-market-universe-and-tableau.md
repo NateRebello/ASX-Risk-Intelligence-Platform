@@ -26,7 +26,7 @@ project owner directed two scope decisions that this ADR records:
 - `settings.yaml` (repo root) selects the default with
   `market_universe: asx50.csv`.
 - The ingestion pipeline resolves the active universe at **runtime** (see
-  `src/config/universe.py`), in this order:
+  `src/universe/loader.py`), in this order:
   1. An explicit `--tickers-file` / `ASX_TICKERS_FILE` override (local
      ad-hoc runs and tests — unchanged from the platform's original
      behavior).

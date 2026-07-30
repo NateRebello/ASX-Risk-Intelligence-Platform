@@ -4,7 +4,7 @@
 # ingests by default. This file is baked into the Lambda image and used
 # whenever the AWS SSM Parameter Store runtime override
 # (/asx-risk/platform/market-universe) is unavailable or unset — see
-# docs/adr/0001-market-universe-and-tableau.md and src/config/universe.py.
+# docs/adr/0001-market-universe-and-tableau.md and src/universe/loader.py.
 #
 # To switch the *deployed* pipeline to ASX 200 without any code change or
 # redeploy, use the SSM parameter instead of editing this file:

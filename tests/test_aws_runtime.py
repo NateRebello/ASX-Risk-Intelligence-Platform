@@ -67,6 +67,7 @@ def test_get_engine_requires_ssl(monkeypatch):
 
     monkeypatch.setattr(settings, "DB_SECRET_ARN", "")
     monkeypatch.setattr(settings, "DB_PASSWORD", "safe/password")
+    monkeypatch.setattr(settings, "DB_SSLMODE", "require")
     monkeypatch.setattr(db_engine, "create_engine", fake_create_engine)
     db_engine._engine = None
 

@@ -23,6 +23,7 @@ import argparse
 import io
 import logging
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -33,6 +34,7 @@ from sqlalchemy.engine import Engine
 
 from config import settings
 from src.db.engine import get_engine
+from src.ingestion.run_metadata import build_macro_metadata, persist_run_metadata
 from src.storage.s3_archive import archive_dataframe
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -155,40 +157,66 @@ def upsert_macro(engine: Engine, merged: pd.DataFrame) -> int:
 
 
 def run(period: str = "5y") -> int:
+    started = time.perf_counter()
     engine = get_engine()
     frames = []
+    sources_ok: list[str] = []
+    sources_failed: list[str] = []
 
     try:
         cash_rate = fetch_cash_rate()
         frames.append(cash_rate)
+        sources_ok.append("cash_rate")
         logger.info("Fetched %d cash rate rows", len(cash_rate))
     except Exception as exc:  # noqa: BLE001
+        sources_failed.append("cash_rate")
         logger.warning("Cash rate fetch failed: %s", exc)
 
     try:
         cpi = fetch_cpi()
         if not cpi.empty:
             frames.append(cpi)
+            sources_ok.append("cpi")
+        else:
+            sources_failed.append("cpi")
         logger.info("Fetched %d CPI rows", len(cpi))
     except Exception as exc:  # noqa: BLE001
+        sources_failed.append("cpi")
         logger.warning("CPI fetch failed: %s", exc)
 
     try:
         aud = fetch_aud_usd(period=period)
         frames.append(aud)
+        sources_ok.append("aud_usd")
         logger.info("Fetched %d AUD/USD rows", len(aud))
     except Exception as exc:  # noqa: BLE001
+        sources_failed.append("aud_usd")
         logger.warning("AUD/USD fetch failed: %s", exc)
 
     try:
         iron_ore = fetch_iron_ore(period=period)
         frames.append(iron_ore)
+        sources_ok.append("iron_ore")
         logger.info("Fetched %d iron ore rows", len(iron_ore))
     except Exception as exc:  # noqa: BLE001
+        sources_failed.append("iron_ore")
         logger.warning("Iron ore fetch failed: %s", exc)
 
     if not frames:
         logger.error("All macro sources failed — nothing to write")
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        persist_run_metadata(
+            engine,
+            build_macro_metadata(
+                rows_written=0,
+                period=period,
+                duration_ms=duration_ms,
+                min_date=None,
+                max_date=None,
+                sources_ok=sources_ok,
+                sources_failed=sources_failed,
+            ),
+        )
         return 0
 
     merged = frames[0]
@@ -209,6 +237,21 @@ def run(period: str = "5y") -> int:
 
     archive_dataframe(merged, source="macro", identifier="daily-macro")
     n = upsert_macro(engine, merged[["date", "cash_rate", "cpi", "unemployment", "aud_usd", "iron_ore_price"]])
+    duration_ms = int((time.perf_counter() - started) * 1000)
+    min_date = merged["date"].min() if not merged.empty else None
+    max_date = merged["date"].max() if not merged.empty else None
+    persist_run_metadata(
+        engine,
+        build_macro_metadata(
+            rows_written=n,
+            period=period,
+            duration_ms=duration_ms,
+            min_date=min_date,
+            max_date=max_date,
+            sources_ok=sources_ok,
+            sources_failed=sources_failed,
+        ),
+    )
     logger.info("Upserted %d macro rows", n)
     return n
 

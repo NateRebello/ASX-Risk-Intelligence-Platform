@@ -1,0 +1,13 @@
+F1.1 INTEREST RATES AND YIELDS - MONEY MARKET
+Title,Cash Rate Target,Interbank Overnight Cash Rate
+Description,Cash Rate Target; monthly average,Interbank Overnight Cash Rate
+Frequency,Monthly,Monthly
+Type,Original,Original
+Units,Per cent,Per cent
+
+Source,RBA,RBA
+Publication date,01-Jul-2026,01-Jul-2026
+Series ID,FIRMMCRT,FIRMMCRI
+31/05/2026,4.35,4.34
+30/06/2026,4.35,4.33
+31/07/2026,4.60,4.58
